@@ -1,0 +1,24 @@
+{
+  "name": "newsapi-fawwazer",
+  "version": "1.0.0",
+  "description": "TECHNICAL TEST — FULL STACK DEVELOPER\r Topik : Mini Project Sistem Manajemen Berita\r TUJUAN TEKNIS\r • Desain API\r • Integrasi database utama dengan Elasticsearch\r • Pemrosesan asynchronous menggunakan RabbitMQ\r • Penanganan error dan recovery\r • Struktur project yang maintainable\r DESKRIPSI SISTEM\r • API Backend: Node.js / Python\r • Database Utama: PostgreSQL / MySQL\r • Elasticsearch\r • RabbitMQ\r Frontend tidak diwajibkan. Fokus hanya ke backend.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fawwazer/NewsApi-fawwazer.git"
+  },
+  "author": "Fawwaz",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/fawwazer/NewsApi-fawwazer/issues"
+  },
+  "homepage": "https://github.com/fawwazer/NewsApi-fawwazer#readme",
+  "dependencies": {
+    "express": "^5.2.1",
+    "pg": "^8.16.3",
+    "sequelize": "^6.37.7"
+  }
+}
