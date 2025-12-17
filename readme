@@ -1,0 +1,62 @@
+TECHNICAL TEST — FULL STACK DEVELOPER
+Topik : Mini Project Sistem Manajemen Berita
+TUJUAN TEKNIS
+• Desain API
+• Integrasi database utama dengan Elasticsearch
+• Pemrosesan asynchronous menggunakan RabbitMQ
+• Penanganan error dan recovery
+• Struktur project yang maintainable
+DESKRIPSI SISTEM
+• API Backend: Node.js / Python
+• Database Utama: PostgreSQL / MySQL
+• Elasticsearch
+• RabbitMQ
+Frontend tidak diwajibkan. Fokus hanya ke backend.
+
+
+ARSITEKTUR YANG DIHARAPKAN
+CLIENT API BACKEND  Database  RabbitMQ  Worker  Elasticsearch
+FLOW SISTEM
+• POST /api/news  simpan DB  publish RabbitMQ
+• Worker  konsumsi queue  index ES
+• GET /api/search  query ES
+• GET /api/news  pagination & filter
+DATABASE
+• id, title, content, author, source, created_at
+ENDPOINT & EXAMPLE OUTPUT
+1. POST /api/news
+Response sukses: { "status": "ok", "message": "News stored and queued", "id": 123
+} Response gagal: { "status": "error", "message": "Validation error" }
+2. GET /api/search
+Response: [ { "id": 1, "title": "...", "content": "...", "author": "...", "source": "twitter",
+"created_at": "..." } ]
+3. GET /api/news
+Response: { "page": 1, "limit": 10, "total": 100, "data": [...] }
+RABBITMQ WORKER
+Consume queue dan index ke Elasticsearch
+• Retry dan auto reconnect jika gagal
+• Logging error
+• Idempotent process
+DATA BERITA
+Data berita boleh berupa dummy dan tidak wajib berita asli, namun harus realistis seperti
+berita.
+GIT REPOSITORY (WAJIB)
+Project harus di-push ke GitHub / GitLab / Bitbucket dan dapat di-clone oleh penguji.
+DOCKER (WAJIB)
+Docker wajib digunakan agar project mudah diuji.
+Minimal docker-compose memuat 5 service:
+1. API Service
+2. Database
+3. RabbitMQ
+4. Elasticsearch
+5. Worker
+Penguji hanya akan menjalankan: docker compose up --build
+WAKTU PENGERJAAN
+• Durasi pengerjaan: 3 x 24 jam sejak soal diterima.
+• Link repository dan konfirmasi telah mengerjakan test harap di email ke :
+Ahmad.m.billah@exylotech.com
+README WAJIB
+• Cara clone dan menjalankan project
+• Konfigurasi environment
+• Penjelasan arsitektur singkat
+• Cara menguji API dan worker
