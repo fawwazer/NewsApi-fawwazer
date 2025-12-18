@@ -1,0 +1,459 @@
+# News Management API - Technical Test
+
+Backend API untuk sistem manajemen berita dengan integrasi PostgreSQL, RabbitMQ, dan Elasticsearch.
+
+## 🏗️ Arsitektur Sistem
+
+```
+CLIENT → API Backend → PostgreSQL
+                    ↓
+                RabbitMQ Queue
+                    ↓
+                Worker → Elasticsearch
+```
+
+### Flow Sistem:
+
+1. **POST /api/news** → Simpan ke PostgreSQL → Publish ke RabbitMQ
+2. **Worker** → Konsumsi queue → Index ke Elasticsearch
+3. **GET /api/search** → Query dari Elasticsearch
+4. **GET /api/news** → Query dari PostgreSQL dengan pagination
+
+## 🛠️ Tech Stack
+
+- **Runtime**: Node.js 22.x
+- **Framework**: Express.js 5.x
+- **Database**: PostgreSQL 16
+- **ORM**: Sequelize 6.x
+- **Message Queue**: RabbitMQ 3.x
+- **Search Engine**: Elasticsearch 8.x
+- **Containerization**: Docker & Docker Compose
+
+## 📋 Prerequisites
+
+- Docker Desktop (atau Docker Engine + Docker Compose)
+- Git
+- Node.js 22.x (untuk development lokal)
+- PostgreSQL 16+ (untuk development lokal)
+
+## 🚀 Quick Start dengan Docker
+
+### 1. Clone Repository
+
+```bash
+git clone <repository-url>
+cd NewsApi-fawwazer
+```
+
+### 2. Jalankan dengan Docker Compose
+
+```bash
+docker compose up --build
+```
+
+Perintah ini akan:
+
+- Build image untuk API dan Worker
+- Start semua 5 services (PostgreSQL, RabbitMQ, Elasticsearch, API, Worker)
+- Jalankan migration dan seeding otomatis
+- API akan tersedia di http://localhost:3000
+
+### 3. Verifikasi Services
+
+Pastikan semua container berjalan:
+
+```bash
+docker compose ps
+```
+
+Services yang harus running:
+
+- `newsapi-postgres` (Port 5432)
+- `newsapi-rabbitmq` (Port 5672, 15672)
+- `newsapi-elasticsearch` (Port 9200, 9300)
+- `newsapi-api` (Port 3000)
+- `newsapi-worker`
+
+## 🔧 Development Lokal (Tanpa Docker)
+
+### 1. Install Dependencies
+
+```bash
+npm install
+```
+
+### 2. Setup Environment Variables
+
+Buat file `.env`:
+
+```env
+# Database
+DB_HOST=localhost
+DB_PORT=5432
+DB_USERNAME=postgres
+DB_PASSWORD=postgres
+DB_NAME=newsapi_fawwazer
+DB_DIALECT=postgres
+
+# RabbitMQ
+RABBITMQ_URL=amqp://guest:guest@localhost:5672
+
+# Elasticsearch
+ELASTICSEARCH_URL=http://localhost:9200
+ELASTICSEARCH_USERNAME=elastic
+ELASTICSEARCH_PASSWORD=your_password_here
+```
+
+### 3. Setup Database
+
+```bash
+# Create database
+npx sequelize-cli db:create
+
+# Run migrations
+npx sequelize-cli db:migrate
+
+# Run seeders (25 news articles)
+npx sequelize-cli db:seed:all
+```
+
+### 4. Start Services
+
+**Terminal 1 - API Server:**
+
+```bash
+npm start
+```
+
+**Terminal 2 - Worker:**
+
+```bash
+npm run worker
+```
+
+API akan berjalan di http://localhost:3000
+
+## 📡 API Endpoints
+
+### 1. POST /api/news
+
+Membuat berita baru dan mengirimkan ke queue untuk indexing.
+
+**Request:**
+
+```bash
+curl -X POST http://localhost:3000/api/news \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Breaking News Title",
+    "content": "Full article content here...",
+    "author": "John Doe",
+    "imgUrl": "https://example.com/image.jpg"
+  }'
+```
+
+**Response Success:**
+
+```json
+{
+  "status": "ok",
+  "message": "News stored and queued",
+  "id": 123
+}
+```
+
+**Response Error:**
+
+```json
+{
+  "status": "error",
+  "message": "Validation error: title, content, and author are required"
+}
+```
+
+### 2. GET /api/news
+
+Mendapatkan list berita dengan pagination dan filter.
+
+**Request:**
+
+```bash
+# Basic request
+curl http://localhost:3000/api/news
+
+# With pagination
+curl "http://localhost:3000/api/news?page=1&limit=10"
+
+# Filter by author
+curl "http://localhost:3000/api/news?author=John%20Doe&page=1&limit=5"
+```
+
+**Response:**
+
+```json
+{
+  "page": 1,
+  "limit": 10,
+  "total": 100,
+  "data": [
+    {
+      "id": 1,
+      "title": "News Title",
+      "content": "News content...",
+      "author": "John Doe",
+      "imgUrl": "https://example.com/image.jpg",
+      "createdAt": "2025-12-18T10:00:00.000Z",
+      "updatedAt": "2025-12-18T10:00:00.000Z"
+    }
+  ]
+}
+```
+
+### 3. GET /api/search
+
+Mencari berita dari Elasticsearch dengan pagination.
+
+**Request:**
+
+```bash
+# Basic search
+curl "http://localhost:3000/api/search?q=technology"
+
+# With pagination
+curl "http://localhost:3000/api/search?q=technology&page=1&limit=5"
+
+# Filter by author
+curl "http://localhost:3000/api/search?q=news&author=John%20Doe"
+```
+
+**Response:**
+
+```json
+{
+  "query": "technology",
+  "total": 50,
+  "page": 1,
+  "limit": 10,
+  "results": [
+    {
+      "id": 1,
+      "title": "Technology News",
+      "content": "Article about technology...",
+      "author": "John Doe",
+      "imgUrl": "https://example.com/image.jpg",
+      "createdAt": "2025-12-18T10:00:00.000Z",
+      "score": 1.5
+    }
+  ]
+}
+```
+
+## 🧪 Testing API
+
+### Test Complete Flow
+
+**1. Create a news article:**
+
+```bash
+curl -X POST http://localhost:3000/api/news \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Test Article",
+    "content": "This is a test article for Elasticsearch integration",
+    "author": "Tester",
+    "imgUrl": "https://example.com/test.jpg"
+  }'
+```
+
+**2. Get all news with pagination:**
+
+```bash
+curl "http://localhost:3000/api/news?page=1&limit=10"
+```
+
+**3. Search in Elasticsearch (wait a few seconds after creation):**
+
+```bash
+curl "http://localhost:3000/api/search?q=test"
+```
+
+### Verify Worker is Processing
+
+Check worker logs:
+
+```bash
+# Docker
+docker logs newsapi-worker -f
+
+# Local
+# Check terminal running npm run worker
+```
+
+You should see:
+
+```
+📨 Received message: {...}
+🔄 Processing news: <id>
+✓ Document indexed to Elasticsearch: ID <id>
+✓ Successfully processed and indexed news ID: <id>
+```
+
+## 🔍 Monitoring
+
+### RabbitMQ Management UI
+
+- URL: http://localhost:15672
+- Username: `guest`
+- Password: `guest`
+
+### Elasticsearch Status
+
+```bash
+curl http://localhost:9200/_cluster/health?pretty
+```
+
+### PostgreSQL Connection
+
+```bash
+# Docker
+docker exec -it newsapi-postgres psql -U postgres -d newsapi_fawwazer
+
+# Show tables
+\dt
+
+# Show news count
+SELECT COUNT(*) FROM "News";
+```
+
+## 🐛 Troubleshooting
+
+### Worker tidak mengindeks ke Elasticsearch
+
+1. Pastikan semua services sudah healthy: `docker compose ps`
+2. Check worker logs: `docker logs newsapi-worker`
+3. Verify Elasticsearch running: `curl http://localhost:9200`
+4. Check RabbitMQ queue: http://localhost:15672
+
+### API tidak bisa connect ke database
+
+1. Pastikan PostgreSQL sudah running
+2. Verify connection: `docker exec -it newsapi-postgres psql -U postgres`
+3. Check environment variables di `.env` atau docker-compose.yml
+
+### Port sudah terpakai
+
+Jika port conflict, edit `docker-compose.yml`:
+
+```yaml
+ports:
+  - "3001:3000" # Change host port
+```
+
+## 📁 Struktur Project
+
+```
+NewsApi-fawwazer/
+├── app.js                  # Entry point API server
+├── worker.js              # RabbitMQ consumer & Elasticsearch indexer
+├── Dockerfile             # API service image
+├── Dockerfile.worker      # Worker service image
+├── docker-compose.yml     # Orchestration untuk 5 services
+├── package.json
+├── .env.example
+├── config/
+│   └── config.json        # Database config
+├── controllers/
+│   └── controller.js      # API endpoints logic
+├── models/
+│   ├── index.js
+│   └── news.js           # News model
+├── migrations/
+│   └── *-create-news.js  # Database schema
+├── seeders/
+│   └── *-data.js         # 25 sample news articles
+├── helpers/
+│   ├── rabbitmq.js       # RabbitMQ connection & publish
+│   └── elasticsearch.js   # ES client, indexing, search
+├── routes/
+│   └── index.js          # API routes
+└── data.json             # Sample data
+```
+
+## 🔐 Environment Variables
+
+| Variable                 | Description             | Default                           |
+| ------------------------ | ----------------------- | --------------------------------- |
+| `DB_HOST`                | PostgreSQL host         | localhost                         |
+| `DB_PORT`                | PostgreSQL port         | 5432                              |
+| `DB_USERNAME`            | PostgreSQL username     | postgres                          |
+| `DB_PASSWORD`            | PostgreSQL password     | postgres                          |
+| `DB_NAME`                | Database name           | newsapi_fawwazer                  |
+| `DB_DIALECT`             | Database type           | postgres                          |
+| `RABBITMQ_URL`           | RabbitMQ connection URL | amqp://guest:guest@localhost:5672 |
+| `ELASTICSEARCH_URL`      | Elasticsearch URL       | http://localhost:9200             |
+| `ELASTICSEARCH_USERNAME` | ES username (optional)  | elastic                           |
+| `ELASTICSEARCH_PASSWORD` | ES password (optional)  | -                                 |
+
+## 🔄 Worker Details
+
+### Features:
+
+- ✅ Auto-reconnect ke RabbitMQ jika terputus
+- ✅ Retry mechanism (max 3 attempts) untuk indexing ke ES
+- ✅ Idempotent process (safe untuk re-process message yang sama)
+- ✅ Proper error logging
+- ✅ Graceful shutdown handling
+
+### Retry Logic:
+
+```javascript
+if (attempt < maxRetries) {
+  console.log(`⏳ Retry ${attempt}/${maxRetries} after 5s...`);
+  await sleep(5000);
+  // Retry indexing
+}
+```
+
+## 📊 Database Schema
+
+### News Table
+
+```sql
+CREATE TABLE "News" (
+  id SERIAL PRIMARY KEY,
+  title TEXT NOT NULL,
+  content TEXT NOT NULL,
+  author VARCHAR(255) NOT NULL,
+  imgUrl VARCHAR(255),
+  createdAt TIMESTAMP NOT NULL,
+  updatedAt TIMESTAMP NOT NULL
+);
+```
+
+## 🎯 Technical Requirements Checklist
+
+- ✅ API Design dengan 3 endpoints
+- ✅ PostgreSQL sebagai database utama
+- ✅ Elasticsearch untuk search
+- ✅ RabbitMQ untuk async processing
+- ✅ Worker dengan retry & error handling
+- ✅ Docker Compose dengan 5 services
+- ✅ Pagination & filtering
+- ✅ Structured & maintainable code
+- ✅ Complete documentation
+
+## 📝 Notes
+
+- Data seeder menyediakan 25 artikel berita realistis
+- Elasticsearch index "news" dibuat otomatis oleh worker
+- RabbitMQ queue "news_indexing" dibuat otomatis
+- Semua services memiliki health checks
+- Worker akan retry jika Elasticsearch belum ready
+
+## 👨‍💻 Author
+
+**Fawwaz**
+
+## 📄 License
+
+This project is for technical test purposes.
